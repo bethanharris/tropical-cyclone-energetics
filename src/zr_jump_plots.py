@@ -127,6 +127,7 @@ def subplots_buoyancy(hurr, theta_e, rt):
     ax2.tick_params(axis='x', colors=orange, labelsize=20, pad=2)
     ax.tick_params(axis='x', colors=blue, labelsize=20, pad=4)
     ax.tick_params(axis='y', colors='k', labelsize=20, pad=10)
+    ax.set_title('(a)', fontsize=20)
 
     ax = axs[1]
     ax.axvline(0, color='k', linestyle='--', linewidth=2, zorder=2)
@@ -138,12 +139,14 @@ def subplots_buoyancy(hurr, theta_e, rt):
     print(lnbs[0] / 1000., perturb_lnbs[-1] / 1000.)
     ax.set_xticks([-0.05, 0, 0.05, 0.1])
     ax.set_xlabel(r'$\mathregular{b\, (ms^{-2})}$', fontsize=24)
+    ax.set_title('(b)', fontsize=20, pad=62)
     ax.tick_params(colors='k', labelsize=20, pad=4)
     ax.set_yticks(np.arange(0, 15, 2))
     ax.set_ylim([0, 14])
     ax.set_yticklabels([])
     plt.tight_layout()
-    plt.savefig('../results/lift_discontinuity.png', dpi=400)
+    plt.savefig('../results/lift_discontinuity.pdf')
+    plt.savefig('../results/lift_discontinuity.png')
     plt.show()
 
 
@@ -189,3 +192,9 @@ def heating_parcel(hurr, save=False):
     if save:
         plt.savefig('../results/discontinuity_heating_efficiency.png', dpi=400)
     plt.show()
+
+
+if __name__ == '__main__':
+    directory = '../data/J30pt3'
+    hurr = read_fortran_output(directory)
+    subplots_buoyancy(hurr, 340., 0.014)
