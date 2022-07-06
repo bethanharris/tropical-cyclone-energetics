@@ -121,6 +121,7 @@ def azimuthal_flow(directory, run_id, timestep, min_v, max_v):
     cbar.ax.tick_params(labelsize=16)
     plt.tight_layout()
     plt.savefig(f'../results/v_{int(time)}h_{run_id}.png', dpi=400)
+    plt.savefig(f'../results/v_{int(time)}h_{run_id}.pdf')
     plt.show()
 
 
@@ -229,6 +230,7 @@ def efficiencies_snapshot(directory, run_id, timestep, ref_state='initial'):
     ax.set_ylabel('z (km)', fontsize=22)
     ax.set_xlim([0, 2500])
     ax.set_ylim([0, 20])
+    ax.set_title('(a)', fontsize=22)
     ax.tick_params(labelsize=16)
     cbar.set_label(r'$\mathregular{\varepsilon_{\theta_{ei}}}$', fontsize=26, labelpad=5)
     cbar.ax.tick_params(labelsize=16)
@@ -240,13 +242,14 @@ def efficiencies_snapshot(directory, run_id, timestep, ref_state='initial'):
     ax.set_ylabel('z (km)', fontsize=22)
     ax.set_xlim([0, 2500])
     ax.set_ylim([0, 20])
+    ax.set_title('(b)', fontsize=22)
     ax.tick_params(labelsize=16)
     cbar.set_label(r'$\mathregular{\varepsilon_{r_t}}$', fontsize=26, labelpad=5)
     cbar.ax.tick_params(labelsize=16)
     cbar.ax.yaxis.offsetText.set_fontsize(16)
 
     plt.tight_layout()
-    plt.savefig(f'../results/efficiencies_{ref_state}_{int(time)}h_{run_id}.png', dpi=400)
+    plt.savefig(f'../results/efficiencies_{ref_state}_{int(time)}h_{run_id}.pdf', dpi=400)
     plt.show()
 
 
@@ -299,7 +302,7 @@ def diabatic_ape_production_inflow_box(directory, run_id, hurr, ref_state, times
                             facecolor='none')
     ax.add_patch(inflow_box)
     plt.tight_layout()
-    plt.savefig(f'../results/total_ape_production_{ref_state}_{int(time)}h_inflow_box_{run_id}.pdf', dpi=400)
+    plt.savefig(f'../results/total_ape_production_{ref_state}_{int(time)}h_inflow_box_{run_id}.pdf', dpi=1000)
     plt.show()
     return upper_limit, lower_limit
 
@@ -308,7 +311,9 @@ if __name__ == '__main__':
     directory = '../data/J30pt3'
     run_id = 'J30pt3'
     hurr = read_fortran_output(directory)
-    azimuthal_flow(directory, run_id, 29, -50, 70)
-    ape_snapshot(directory, run_id, 29)
+    azimuthal_flow(directory, run_id, 149, -50, 70)
+    ape_snapshot(directory, run_id, 149)
     zr_snapshot(directory, run_id, 29)
-    efficiencies_snapshot(directory, run_id, 29)
+    efficiencies_snapshot(directory, run_id, 149)
+    diabatic_ape_production_inflow_box(directory, run_id, hurr, 'initial', 199, title=False)
+
