@@ -1,7 +1,7 @@
 import numpy as np
 import matplotlib as mpl
 import matplotlib.pyplot as plt
-from utils import flux_through_boundaries
+from utils import flux_through_boundaries, column_to_time_grid
 from model_reader import read_fortran_output
 from volume_integral import vol_int
 
@@ -67,11 +67,19 @@ def plot_boundary_contributions(directory, run_id, outer_radius_km):
     plt.show()
 
 
-def plot_outer_boundary_flux(directory, run_id, outer_radius_km, timestep, title=False, save=True):
-    hurr = read_fortran_output(directory)
-    outer_radial_flux = get_boundary_contributions(directory, run_id, outer_radius_km)[6]
+def plot_ape_import(directory, run_id, hurr, timestep, outer_radius_km=300, title=False, save=False):
+    ape_data = np.load(f'{directory}/ape_initial_ref_at_timesteps_{run_id}.npz')
+    ape_density = ape_data['ape_density']
+    z_list = np.arange(0, hurr['n']*hurr['dz'], hurr['dz']) + 0.5 * hurr['dz']
+    z_km = z_list/1000.
     time = (np.arange(1, hurr['timesteps'] + 1) * hurr['ibuff'] * hurr['dt'] / 3600.)[timestep]
-    z_km = (np.arange(0, hurr['dz']*hurr['n'], hurr['dz']) + 0.5 * hurr['dz'])/1000.
+    z_grid = column_to_time_grid(hurr, z_list)
+    radial_idx = int(round(outer_radius_km * 1000. / hurr['dr']) - 1)
+    outer_radial_flux = flux_through_boundaries(hurr, ape_density, 0, radial_idx, 0, 42)[6]
+    total_import = -flux_through_boundaries(hurr, ape_density, 0, radial_idx, 0, 42)[1][timestep]
+    total_import_raw_string = f'{total_import:0.2e}'
+    mantissa, exponent = total_import_raw_string.split('e+')
+    total_import_string = rf'${mantissa} \times 10^{{{exponent}}}$ W'
 
     fmt = mpl.ticker.ScalarFormatter(useMathText=True)
     fmt.set_powerlimits((0, 0))
@@ -79,6 +87,7 @@ def plot_outer_boundary_flux(directory, run_id, outer_radius_km, timestep, title
     plt.figure(figsize=(6, 4.5))
     ax = plt.gca()
     plt.plot(-outer_radial_flux[:, timestep], z_km, '-o', linewidth=2)
+    plt.text(0.7, 0.5, f'net import:\n{total_import_string}', horizontalalignment='center', verticalalignment='center', transform=ax.transAxes, fontsize=16)
     ax.tick_params(labelsize=16)
     ax.set_ylim(bottom=0.)
     ax.set_ylabel('z (km)', fontsize=20)
@@ -91,3 +100,10 @@ def plot_outer_boundary_flux(directory, run_id, outer_radius_km, timestep, title
     if save:
         plt.savefig(f'../results/radial_ape_flux_r_{int(outer_radius_km)}_t_{int(time)}.pdf')
     plt.show()
+
+
+if __name__ == '__main__':
+    directory = '../data/J30pt3'
+    run_id = 'J30pt3'
+    hurr = read_fortran_output(directory)
+    plot_ape_import(directory, run_id, hurr, 199, save=True)
