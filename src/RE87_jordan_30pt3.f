@@ -126,7 +126,7 @@ C which is outside the array.
 C
       DATA
      $ IREAD/0/, ISTART/1/, ISTOP/150005/,
-     $ IPRINT/180000/, IPLOT/180000/, ITMAX/150/, IBUFF/3000/,
+     $ IPRINT/180000/, IPLOT/180000/, ITMAX/150/, IBUFF/600/,
      $ IBUFF2/60000/,
      $ F/.0000614/, CD/.0011/, CE/.0012/, CT/.001/, VGUST/1./,
      $ OBRAD/.FALSE./, CSTAR/30./, RALPHA/0.003/,
