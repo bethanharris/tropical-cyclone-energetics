@@ -2,8 +2,8 @@ import numpy as np
 import matplotlib as mpl
 from model_reader import read_fortran_output
 import matplotlib.pyplot as plt
-from volume_integral import vol_int, integrate_area_surface
-from utils import clean_filename, multiply_by_rho, safe_div, running_mean
+from volume_integral import vol_int, integrate_area_surface, mask_array
+from utils import clean_filename, multiply_by_rho, safe_div, running_mean, column_areas
 from energy_budget_timeseries import time_jump_masker, plot_time_series
 from precip_budget import read_budget as read_precip_budget
 from diabatic_budgets import *
@@ -11,20 +11,20 @@ from diabatic_budgets import *
 
 def ape_production_budget_linestyles():
     colours = {
-        'mixing': '#4daf4a',
-        'ice': '#a6cee3',
-        'precip': '#1f78b4',
-        'surface_flux': '#b2df8a',
-        'radcool': '#812fe0'
+        'mixing': '#54FD70',
+        'ice': '#A6CEE3',
+        'precip': '#2F8FD0',
+        'surface_flux': '#40770E',
+        'radcool': '#5105A9'
     }
-    shapes = {
-        'mixing': '^',
-        'ice': 's',
-        'precip': 'o',
-        'surface_flux': 'D',
-        'radcool': 'P'
+    markers = {
+        'mixing': 'None',
+        'ice': 'None',
+        'precip': 'None',
+        'surface_flux': 'None',
+        'radcool': 'None'
     }
-    return colours, shapes
+    return colours, markers
 
 
 def plot_theta_ei_budget(directory, hurr, run_id, region_key='non-sponge', fixed_exner=None, end_time=None, save=False,
@@ -568,7 +568,7 @@ def plot_ape_production_total_budget(directory, hurr, run_id, ref_state, region_
         mixing_integral = subgrid_integral - surface_flux
 
         fig = plt.figure(figsize=(8, 5))
-        plt.plot(time_list, lagr_integral[0:end_time], 'k--', linewidth=2, label=total_prod_label)
+        plt.plot(time_list, lagr_integral[0:end_time], 'k', linestyle=(0, (4, 2)), linewidth=2, label=total_prod_label)
         plt.plot(time_list, mixing_integral[0:end_time], color=colours['mixing'], marker=shapes['mixing'],
                  linewidth=2, label=r'$\mathregular{mixing}$')
         plt.plot(time_list, radcool_integral[0:end_time], color=colours['radcool'], marker=shapes['radcool'],
@@ -607,6 +607,8 @@ def plot_ape_production_total_budget(directory, hurr, run_id, ref_state, region_
                 save_name += '_fixexner'
             fig.savefig(f'../results/ape_production_timeseries/{save_name}.png',
                         bbox_extra_artists=(lgd,), bbox_inches='tight')
+            fig.savefig(f'../results/ape_production_timeseries/{save_name}.pdf',
+                        bbox_extra_artists=(lgd,), bbox_inches='tight')
             plt.close()
         else:
             plt.show()
@@ -624,9 +626,9 @@ def plot_ape_production_total_budget(directory, hurr, run_id, ref_state, region_
         fig = plt.figure(figsize=(6, 4.5))
         if title:
             plt.title(plot_title, fontsize=16)
-        plt.plot(time_list, estimated_derivative[0:end_time], 'k', linewidth=2, label=total_prod_label)
-        plt.plot(time_list, total_production[0:end_time], '--', color='orange', dashes=(5, 5),
-                 linewidth=2,
+        plt.plot(time_list, estimated_derivative[0:end_time], 'k', linewidth=1.5, label=total_prod_label)
+        plt.plot(time_list, total_production[0:end_time], color='orange', linestyle=(0, (3, 3)),
+                 linewidth=1.5,
                  label=r'$\mathrm{sum}$')
 
         ax = plt.gca()
@@ -647,6 +649,8 @@ def plot_ape_production_total_budget(directory, hurr, run_id, ref_state, region_
             ax.set_ylabel(r'$\mathregular{\left(W\right)}$', fontsize=20)
         if save:
             extra = (lgd,) if legend_on_error_plot else None
+            fig.savefig(f'../results/ape_production_timeseries/error/{save_name}.pdf',
+                        bbox_inches='tight', bbox_extra_artists=extra)
             fig.savefig(f'../results/ape_production_timeseries/error/{save_name}.png',
                         bbox_inches='tight', bbox_extra_artists=extra)
             plt.close()
@@ -654,14 +658,56 @@ def plot_ape_production_total_budget(directory, hurr, run_id, ref_state, region_
             plt.show()
 
 
+def ape_surface_fluxes(directory, hurr, run_id, ref_state, region_key='non-sponge', save=False):
+    ape = np.load(f'{directory}/ape_{ref_state}_ref_at_timesteps_{run_id}.npz')
+
+    exner = np.dstack([np.tile(hurr['pi_initial'], (hurr['m'], 1)).transpose()]*hurr['timesteps']) + hurr['pi']
+    rv_coeff = hurr['Ls']/(hurr['cp']*exner)
+
+    time_list = np.arange(1, hurr['timesteps'] + 1) * hurr['ibuff'] * hurr['dt'] / 3600.
+
+    theta_e_flux = hurr['rho_initial_v'][0] * ape['G_theta_e'] * (
+                hurr['vertical_flux_theta'][:-1, :, :] + rv_coeff * hurr['vertical_flux_rv'][:-1, :, :])
+    theta_e_flux_sensible = hurr['rho_initial_v'][0] * ape['G_theta_e'] *hurr['vertical_flux_theta'][:-1, :, :]
+    theta_e_flux_latent = hurr['rho_initial_v'][0] * ape['G_theta_e'] * (rv_coeff * hurr['vertical_flux_rv'][:-1, :, :])
+    rt_flux = hurr['rho_initial_v'][0] * ape['G_rt'] * hurr['vertical_flux_rv'][:-1, :, :]
+
+    areas = np.zeros_like(hurr['v'])
+    areas[0, :, :] = np.tile(column_areas(hurr), (hurr['timesteps'], 1)).T
+    areas = mask_array(hurr, areas, region_key=region_key)
+    total_area = np.sum(areas)
+
+    area_avg_theta_e = -safe_div(integrate_area_surface(hurr, theta_e_flux, region_key=region_key), total_area)
+    area_avg_theta_e_sensible = -safe_div(integrate_area_surface(hurr, theta_e_flux_sensible, region_key=region_key), total_area)
+    area_avg_theta_e_latent = -safe_div(integrate_area_surface(hurr, theta_e_flux_latent, region_key=region_key), total_area)
+    area_avg_rt = -safe_div(integrate_area_surface(hurr, rt_flux, region_key=region_key), total_area)
+    area_avg_moisture = -safe_div(integrate_area_surface(hurr, theta_e_flux_latent + rt_flux, region_key=region_key), total_area)
+
+    fig = plt.figure(figsize=(8, 5))
+    plt.plot(time_list, area_avg_theta_e_sensible, color='#29A022', linewidth=2, label='$\mathregular{\\theta_{ei}}$ sensible')
+    plt.plot(time_list, area_avg_theta_e_latent,  color='#FB8072', linewidth=2, label='$\mathregular{\\theta_{ei}}$ latent')
+    plt.plot(time_list, area_avg_rt, color='#10659E', linewidth=2, label='$\mathregular{r_t}$')
+    plt.plot(time_list, area_avg_moisture, linestyle=(0, (4, 2)), color='gray', linewidth=2, label='moisture total')
+    ax = plt.gca()
+    ax.axhline(0, color='k', linewidth=1)
+    ax.set_xlim([0, 250])
+    box = ax.get_position()
+    ax.set_position([box.x0, box.y0, box.width * 0.8, box.height])
+    lgd = ax.legend(loc='center left', bbox_to_anchor=(1, 0.5), fontsize=24)
+    ax.tick_params(labelsize=16)
+    ax.set_xlabel('time (h)', fontsize=20)
+    ax.set_ylabel(r"$\mathregular{surface\; flux}$"
+           "\n"  # Newline: the backslash is interpreted as usual
+           r"$\mathregular{APE\; production\; \left(Wm^{-2}\right)}$", fontsize=18)
+    plt.savefig(f'../results/ape_surface_flux_components_{clean_filename(region_key)}_{ref_state}_{run_id}.pdf', bbox_extra_artists=(lgd,), bbox_inches='tight')
+    plt.show()
+
+
 if __name__ == '__main__':
     data_dir = '../data/J30pt3'
     run_id = 'J30pt3'
     hurr = read_fortran_output(data_dir)
-    region_key = 'r<300'
-    plot_theta_ei_budget(data_dir, hurr, run_id, region_key=region_key, save=True)
-    plot_rt_budget(data_dir, hurr, run_id, region_key='non-sponge', save=True)
+    region_key = 'outer_inflow'
+    ape_surface_fluxes(data_dir, hurr, run_id, 'initial', region_key='outer_inflow', save=True)
     plot_ape_production_total_budget(data_dir, hurr, run_id, 'initial', region_key=region_key, save=True)
-    plot_ape_production_theta_ei_budget(data_dir, hurr, run_id, 'initial', region_key=region_key, save=True)
-    plot_ape_production_rt_budget(data_dir, hurr, run_id, 'initial', region_key=region_key, save=True)
 
