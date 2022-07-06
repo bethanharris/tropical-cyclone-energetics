@@ -32,11 +32,10 @@ def intensity(directory, run_id, save=False, show=True):
         ax.plot(time, maximum_wind_speed, color=blue, linewidth=3)
         ax2 = ax.twinx()
         ax2.plot(time, minimum_surface_pressure, color=orange, linewidth=3, linestyle='--')
-        ax2.invert_yaxis()
         ax.set_ylim([0, 80])
         ax.set_xlim([0, time[-1]])
         ax2.set_yticks([900, 925, 950, 975, 1000])
-        ax2.set_ylim([1020, 885])
+        ax2.set_ylim([885, 1020])
         ax.set_xlabel('time (h)', fontsize=26, labelpad=5)
         ax2.set_ylabel(r'$\mathregular{p_{min}\; \left(hPa\right)}$', fontsize=26, color=orange)
         ax.set_ylabel(r'$\mathregular{v_{max}\; \left(ms^{-1}\right)}$', fontsize=26, color=blue, labelpad=10)
@@ -53,4 +52,4 @@ def intensity(directory, run_id, save=False, show=True):
 
 
 if __name__ == '__main__':
-    t, p, v = intensity('../data/J30pt3', 'J30pt3')
+    t, p, v = intensity('../data/J30pt3', 'J30pt3', save=True)
