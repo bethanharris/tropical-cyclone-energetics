@@ -8,29 +8,29 @@ from model_reader import read_fortran_output
 
 
 def energy_budget_linestyles():
-    colours = {'flux': '#377eb8',
-               'zr_var': '#a65628',
-               'src': '#858989',
-               'subgrid': '#4daf4a',
+    colours = {'flux': '#007FFF'
+               'zr_var': '#AA3377',
+               'src': '#CACACA',
+               'subgrid': '#54FD70',
                'coriolis': '#f4cb42',
                'pgrad': '#984ea3',
-               'buoy': '#ff7f00',
+               'buoy': '#FFAD00',
                'theta_e_prod': '#e41a1c',
                'rt_prod': '#f781bf',
-               'total_prod': '#f781bf',
-               'dthetav': '#b3de69'}
-    shapes = {'flux': 'o',
-              'zr_var': 'x',
-              'src': '2',
-              'subgrid': '^',
-              'coriolis': 'p',
-              'pgrad': 'D',
-              'buoy': '>',
-              'theta_e_prod': '*',
-              'rt_prod': 'v',
-              'total_prod': 'v',
-              'dthetav': 's'}
-    return colours, shapes
+               'total_prod': '#FF3A52',
+               'dthetav': '#66CCEE'}
+    markers = {'flux': 'None',
+              'zr_var': 'None',
+              'src': 'None',
+              'subgrid': 'None',
+              'coriolis': 'None',
+              'pgrad': 'None',
+              'buoy': 'None',
+              'theta_e_prod': 'None',
+              'rt_prod': 'None',
+              'total_prod': 'None',
+              'dthetav': 'None'}
+    return colours, markers
 
 
 def time_jump_masker(ape_budget):
@@ -45,7 +45,7 @@ def time_jump_masker(ape_budget):
 
 def plot_time_series(hurr, run_id, energy_type, budget_terms, budget_labels, budget_colors, budget_markers,
                      region_key='non-sponge', title=False, end_time=None, save=False, normalise=False,
-                     smooth=False, legend_on_error_plot=False):
+                     smooth=False, legend_on_error_plot=False, marker_interval=1):
     time_list = np.arange(1, hurr['timesteps'] + 1) * hurr['ibuff'] * hurr['dt'] / 3600.
     if end_time and end_time > time_list.size:
         end_time = None
@@ -75,11 +75,11 @@ def plot_time_series(hurr, run_id, energy_type, budget_terms, budget_labels, bud
             if term == 'estimated_deriv':
                 pass
             elif term == 'time_deriv':
-                plt.plot(time_list, integrated_budget_terms[term][0:end_time], 'k--',
+                plt.plot(time_list, integrated_budget_terms[term][0:end_time], 'k', linestyle=(0, (4, 2)),
                         linewidth=2, label=budget_labels[term])
             else:
                 plt.plot(time_list, integrated_budget_terms[term][0:end_time], color=budget_colors[term],
-                         linewidth=2, marker=budget_markers[term], label=budget_labels[term])
+                         marker=budget_markers[term], markevery=marker_interval, linewidth=2, label=budget_labels[term])
 
         ax = plt.gca()
         ax.axhline(0, color='k', linewidth=1)
@@ -106,6 +106,8 @@ def plot_time_series(hurr, run_id, energy_type, budget_terms, budget_labels, bud
                 save_name += '_smoothed'
             fig.savefig(f'../results/energy_budget_timeseries/{save_name}.pdf',
                         bbox_extra_artists=(lgd,), bbox_inches='tight')
+            fig.savefig(f'../results/energy_budget_timeseries/{save_name}.png',
+                        bbox_extra_artists=(lgd,), bbox_inches='tight', dpi=500)
             plt.close()
         else:
             plt.tight_layout()
@@ -117,9 +119,9 @@ def plot_time_series(hurr, run_id, energy_type, budget_terms, budget_labels, bud
         if title:
             plt.title(title, fontsize=16)
         plt.plot(time_list, integrated_budget_terms['time_deriv'][0:end_time], 'k',
-                 linewidth=2, label=budget_labels['time_deriv'])
-        plt.plot(time_list, estimated_derivative[0:end_time], '--', color='orange', dashes=(5, 5),
-                 linewidth=2, label=r'$\mathrm{sum}$')
+                 linewidth=1.5, label=budget_labels['time_deriv'])
+        plt.plot(time_list, estimated_derivative[0:end_time], linestyle=(0, (3, 3)), color='orange',
+                 linewidth=1.5, label=r'$\mathrm{sum}$')
         ax = plt.gca()
         ax.set_xlim([0, 250])
         if legend_on_error_plot:
@@ -144,7 +146,7 @@ def plot_time_series(hurr, run_id, energy_type, budget_terms, budget_labels, bud
 
 
 def primary_ke(data_dir, hurr, run_id, region_key='non-sponge', title=False, end_time=None, save=False,
-               normalise=False, smooth=False, legend_on_error_plot=False):
+               normalise=False, smooth=False, legend_on_error_plot=False, marker_interval=1):
     energy_type = 'primary_ke'
     if title:
         title = 'Primary KE budget'
@@ -175,11 +177,11 @@ def primary_ke(data_dir, hurr, run_id, region_key='non-sponge', title=False, end
 
     plot_time_series(hurr, run_id, energy_type, budget_terms, budget_labels, budget_colors, budget_markers,
                      region_key=region_key, title=title, end_time=end_time, save=save, normalise=normalise,
-                     smooth=smooth, legend_on_error_plot=legend_on_error_plot)
+                     smooth=smooth, legend_on_error_plot=legend_on_error_plot, marker_interval=marker_interval)
 
 
 def radial_ke(data_dir, hurr, run_id, region_key='non-sponge', title=False, end_time=None, save=False,
-              normalise=False, smooth=False, legend_on_error_plot=False):
+              normalise=False, smooth=False, legend_on_error_plot=False, marker_interval=1):
     energy_type = 'radial_ke'
     if title:
         title = 'Radial KE budget'
@@ -212,11 +214,11 @@ def radial_ke(data_dir, hurr, run_id, region_key='non-sponge', title=False, end_
 
     plot_time_series(hurr, run_id, energy_type, budget_terms, budget_labels, budget_colors, budget_markers,
                      region_key=region_key, title=title, end_time=end_time, save=save, normalise=normalise,
-                     smooth=smooth, legend_on_error_plot=legend_on_error_plot)
+                     smooth=smooth, legend_on_error_plot=legend_on_error_plot, marker_interval=marker_interval)
 
 
 def horizontal_ke(data_dir, hurr, run_id, region_key='non-sponge', title=False, end_time=None, save=False,
-                  normalise=False, smooth=False, legend_on_error_plot=False):
+                  normalise=False, smooth=False, legend_on_error_plot=False, marker_interval=1):
 
     energy_type = 'horizontal_ke'
     if title:
@@ -248,11 +250,11 @@ def horizontal_ke(data_dir, hurr, run_id, region_key='non-sponge', title=False, 
 
     plot_time_series(hurr, run_id, energy_type, budget_terms, budget_labels, budget_colors, budget_markers,
                      region_key=region_key, title=title, end_time=end_time, save=save, normalise=normalise,
-                     smooth=smooth, legend_on_error_plot=legend_on_error_plot)
+                     smooth=smooth, legend_on_error_plot=legend_on_error_plot, marker_interval=marker_interval)
 
 
 def vertical_ke(data_dir, hurr, run_id, ref_state, region_key='non-sponge', title=False, end_time=None, save=False,
-                smooth=False, normalise=False, legend_on_error_plot=False):
+                smooth=False, normalise=False, legend_on_error_plot=False, marker_interval=1):
 
     energy_type = f'vertical_ke_{ref_state}'
     if title:
@@ -292,11 +294,11 @@ def vertical_ke(data_dir, hurr, run_id, ref_state, region_key='non-sponge', titl
 
     plot_time_series(hurr, run_id, energy_type, budget_terms, budget_labels, budget_colors, budget_markers,
                      region_key=region_key, title=title, end_time=end_time, save=save, normalise=normalise,
-                     smooth=smooth, legend_on_error_plot=legend_on_error_plot)
+                     smooth=smooth, legend_on_error_plot=legend_on_error_plot, marker_interval=marker_interval)
 
 
 def secondary_ke(data_dir, hurr, run_id, ref_state, region_key='non-sponge', title=False, end_time=None, save=False,
-                 smooth=False, normalise=False, legend_on_error_plot=False):
+                 smooth=False, normalise=False, legend_on_error_plot=False, marker_interval=1):
 
     energy_type = f'secondary_ke_{ref_state}'
     if title:
@@ -338,11 +340,11 @@ def secondary_ke(data_dir, hurr, run_id, ref_state, region_key='non-sponge', tit
 
     plot_time_series(hurr, run_id, energy_type, budget_terms, budget_labels, budget_colors, budget_markers,
                      region_key=region_key, title=title, end_time=end_time, save=save, normalise=normalise,
-                     smooth=smooth, legend_on_error_plot=legend_on_error_plot)
+                     smooth=smooth, legend_on_error_plot=legend_on_error_plot, marker_interval=marker_interval)
 
 
 def total_ke(data_dir, hurr, run_id, ref_state, region_key='non-sponge', title=False, end_time=None, save=False,
-             smooth=False, normalise=False, legend_on_error_plot=False):
+             smooth=False, normalise=False, legend_on_error_plot=False, marker_interval=1):
 
     energy_type = f'total_ke_{ref_state}'
     if title:
@@ -383,11 +385,11 @@ def total_ke(data_dir, hurr, run_id, ref_state, region_key='non-sponge', title=F
 
     plot_time_series(hurr, run_id, energy_type, budget_terms, budget_labels, budget_colors, budget_markers,
                      region_key=region_key, title=title, end_time=end_time, save=save, normalise=normalise,
-                     smooth=smooth, legend_on_error_plot=legend_on_error_plot)
+                     smooth=smooth, legend_on_error_plot=legend_on_error_plot, marker_interval=marker_interval)
 
 
 def aee(data_dir, hurr, run_id, ref_state, region_key='non-sponge', title=False, end_time=None, save=False,
-        smooth=False, normalise=False, legend_on_error_plot=False):
+        smooth=False, normalise=False, legend_on_error_plot=False, marker_interval=1):
 
     energy_type = f'aee_{ref_state}'
     if title:
@@ -427,11 +429,11 @@ def aee(data_dir, hurr, run_id, ref_state, region_key='non-sponge', title=False,
 
     plot_time_series(hurr, run_id, energy_type, budget_terms, budget_labels, budget_colors, budget_markers,
                      region_key=region_key, title=title, end_time=end_time, save=save, normalise=normalise,
-                     smooth=smooth, legend_on_error_plot=legend_on_error_plot)
+                     smooth=smooth, legend_on_error_plot=legend_on_error_plot, marker_interval=marker_interval)
 
 
 def aee_plus_ke(data_dir, hurr, run_id, ref_state, region_key='non-sponge', title=False, end_time=None, save=False,
-                normalise=False, smooth=False, legend_on_error_plot=False):
+                normalise=False, smooth=False, legend_on_error_plot=False, marker_interval=1):
 
     energy_type = f'aee_plus_ke_{ref_state}'
     if title:
@@ -476,12 +478,12 @@ def aee_plus_ke(data_dir, hurr, run_id, ref_state, region_key='non-sponge', titl
 
     plot_time_series(hurr, run_id, energy_type, budget_terms, budget_labels, budget_colors, budget_markers,
                      region_key=region_key, title=title, end_time=end_time, save=save, normalise=normalise,
-                     smooth=smooth, legend_on_error_plot=legend_on_error_plot)
+                     smooth=smooth, legend_on_error_plot=legend_on_error_plot, marker_interval=marker_interval)
 
 
 def ape(directory, hurr, run_id, ref_state, region_key='non-sponge', end_time=None, save=False,
         title=False, mask_time_jumps=False, normalise=False, show_total_prod=False, smooth=False,
-        legend_on_error_plot=False):
+        legend_on_error_plot=False, marker_interval=1):
 
     energy_type = f'ape_{ref_state}_ref'
     if show_total_prod:
@@ -535,12 +537,12 @@ def ape(directory, hurr, run_id, ref_state, region_key='non-sponge', end_time=No
 
     plot_time_series(hurr, run_id, energy_type, budget_terms, budget_labels, budget_colors, budget_markers,
                      region_key=region_key, title=title, end_time=end_time, save=save, normalise=normalise,
-                     smooth=smooth, legend_on_error_plot=legend_on_error_plot)
+                     smooth=smooth, legend_on_error_plot=legend_on_error_plot, marker_interval=marker_interval)
 
 
 def total_energy(directory, hurr, run_id, ref_state, region_key='non-sponge', end_time=None, save=False,
                  title=False, mask_time_jumps=False, normalise=False, show_total_prod=False, smooth=False,
-                 legend_on_error_plot=False):
+                 legend_on_error_plot=False, marker_interval=1):
 
     energy_type = f'total_energy_{ref_state}_ref'
     if show_total_prod:
@@ -614,7 +616,7 @@ def total_energy(directory, hurr, run_id, ref_state, region_key='non-sponge', en
 
     plot_time_series(hurr, run_id, energy_type, budget_terms, budget_labels, budget_colors, budget_markers,
                      region_key=region_key, title=title, end_time=end_time, save=save, normalise=normalise,
-                     smooth=smooth, legend_on_error_plot=legend_on_error_plot)
+                     smooth=smooth, legend_on_error_plot=legend_on_error_plot, marker_interval=marker_interval)
 
 
 if __name__ == '__main__':
@@ -622,15 +624,17 @@ if __name__ == '__main__':
     hurr = read_fortran_output(data_dir)
     run_id = 'J30pt3'
     region_key = 'non-sponge'
-    primary_ke(data_dir, hurr, run_id, region_key=region_key, save=True)
-    radial_ke(data_dir, hurr, run_id, region_key=region_key, save=True)
-    horizontal_ke(data_dir, hurr, run_id, region_key=region_key, save=True)
-    vertical_ke(data_dir, hurr, run_id, 'initial', region_key=region_key, save=True)
-    secondary_ke(data_dir, hurr, run_id, 'initial', region_key=region_key, save=True)
-    aee(data_dir, hurr, run_id, 'initial', region_key=region_key, save=True)
-    aee_plus_ke(data_dir, hurr, run_id, 'initial', region_key=region_key, save=True)
-    total_ke(data_dir, hurr, run_id, 'initial', region_key=region_key, save=True)
-    ape(data_dir, hurr, run_id, 'initial', region_key=region_key, save=True, mask_time_jumps=True, show_total_prod=True)
-    ape(data_dir, hurr, run_id, 'initial', region_key='r<300', save=True, mask_time_jumps=True, show_total_prod=True)
-    total_energy(data_dir, hurr, run_id, 'initial', region_key=region_key, save=True, mask_time_jumps=True, show_total_prod=True)
-    total_energy(data_dir, hurr, run_id, 'initial', region_key='r<300', save=True, mask_time_jumps=True, show_total_prod=True)
+    marker_interval = 1
+    primary_ke(data_dir, hurr, run_id, region_key=region_key, save=True, marker_interval=marker_interval)
+    radial_ke(data_dir, hurr, run_id, region_key=region_key, save=True, marker_interval=marker_interval)
+    horizontal_ke(data_dir, hurr, run_id, region_key=region_key, save=True, marker_interval=marker_interval)
+    vertical_ke(data_dir, hurr, run_id, 'initial', region_key=region_key, save=True, marker_interval=marker_interval)
+    secondary_ke(data_dir, hurr, run_id, 'initial', region_key=region_key, save=True, marker_interval=marker_interval)
+    aee(data_dir, hurr, run_id, 'initial', region_key=region_key, save=True, marker_interval=marker_interval)
+    aee_plus_ke(data_dir, hurr, run_id, 'initial', region_key=region_key, save=True, marker_interval=marker_interval)
+    aee_plus_ke(data_dir, hurr, run_id, 'initial', region_key='r<300', save=True, marker_interval=marker_interval)
+    total_ke(data_dir, hurr, run_id, 'initial', region_key=region_key, save=True, marker_interval=marker_interval)
+    ape(data_dir, hurr, run_id, 'initial', region_key=region_key, save=True, mask_time_jumps=True, show_total_prod=True, marker_interval=marker_interval)
+    ape(data_dir, hurr, run_id, 'initial', region_key='r<300', save=True, mask_time_jumps=True, show_total_prod=True, marker_interval=marker_interval, smooth=True)
+    total_energy(data_dir, hurr, run_id, 'initial', region_key=region_key, save=True, mask_time_jumps=True, show_total_prod=True, marker_interval=marker_interval)
+    total_energy(data_dir, hurr, run_id, 'initial', region_key='r<300', save=True, mask_time_jumps=True, show_total_prod=True, marker_interval=marker_interval)
